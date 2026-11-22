@@ -279,7 +279,7 @@ function renderOwner(){
   } else {
     $('#tf').onsubmit = async e => {
       e.preventDefault(); TOKEN = $('#tok').value.trim(); $('#ts').textContent = 'Checking…';
-      if(await checkOwner()){ IS_OWNER = true; store.set('fp-gh-token', TOKEN); addPrivateTab(); go('#private'); }
+      if(await checkOwner()){ IS_OWNER = true; store.set('fp-gh-token', TOKEN); addPrivateTab(); await adoptLocalNames(); go('#private'); }
       else { TOKEN = null; $('#ts').textContent = 'That key doesn’t have write access to this site’s repository. Check that it allows Contents: Read and write for this repository.'; }
     };
   }
@@ -337,6 +337,12 @@ async function saveName(id, v){
     if(prev) names[id] = prev; else delete names[id];
     return e.status === 401 || e.status === 403 ? 'Your access key stopped working. Sign in again from Owner sign-in.' : 'The name didn’t save. Check your connection and press Enter again.';
   }
+}
+async function adoptLocalNames(){
+  const extra = Object.keys(localNames).filter(k => localNames[k] && names[k] !== localNames[k]);
+  if(!extra.length) return;
+  const merged = {...names}; extra.forEach(k => merged[k] = localNames[k]);
+  try{ await putJSON('names.json', merged, 'Save names typed before signing in'); names = merged; localNames = {}; store.set('fp-names', {}); if(P) refreshNames(); }catch(e){}
 }
 const nameOf = p => names[p.id] || localNames[p.id] || `Person ${p.id+1}`;
 const peopleIn = {}; // photo index -> [person ids]
@@ -656,7 +662,7 @@ fetch('data.json').then(r => { if(!r.ok) throw new Error(r.status); return r.jso
   return capsReady.catch(() => {}).then(() => {
     if(hiddenFailed){ main.innerHTML = '<p class="empty">The list of hidden people didn’t load, so the photos are held back. Reload the page to try again.</p>'; return; }
     applyHidden();
-    if(IS_OWNER) addPrivateTab();
+    if(IS_OWNER){ addPrivateTab(); adoptLocalNames(); }
     route();
   });
 }).catch(() => { main.innerHTML = '<p class="empty">The photo list did not load. Reload the page to try again.</p>'; });
