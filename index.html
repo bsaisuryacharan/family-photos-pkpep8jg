@@ -187,7 +187,7 @@ footer{color:#6f9a9a;font-size:14px;padding:30px 0 50px;border-top:1px solid var
     </nav>
   </header>
   <main id="main"></main>
-  <footer>Photos and videos here are smaller copies; the full-size originals are in the Family Photos folder on Google Drive. Click a name under any face to type a new one. <button class="ren" id="ownerlink">Owner sign-in</button></footer>
+  <footer>Photos and videos here are smaller copies; the full-size originals are in the Family Photos folder on Google Drive. Click a name under any face to type a new one. <button class="ren" id="ownerlink">Sign in</button></footer>
 </div>
 
 <div class="vb" id="vb" role="dialog" aria-modal="true" aria-label="Video player">
@@ -215,11 +215,13 @@ const store = {
   get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v);}catch(e){return d;} },
   set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
 };
-/* ---------- shared names and hidden people (stored in this site's GitHub repository) ---------- */
-const REPO = 'bsaisuryacharan/family-photos-pkpep8jg';
-let names = {};                                 // names everyone sees (names.json)
+/* ---------- names, hidden people and visits: stored in Firebase (Google sign-in) ---------- */
+const OWNER_EMAIL = 'bcharan197@gmail.com';
+const FB_CONFIG = {apiKey: 'AIzaSyBKWw4QfIw5KWxgZKpqZrqjg-hYmB9hTwM', authDomain: 'family-photos-d22ad.firebaseapp.com', projectId: 'family-photos-d22ad', storageBucket: 'family-photos-d22ad.firebasestorage.app', messagingSenderId: '173802453091', appId: '1:173802453091:web:2f16e297e8f6f494f42056'};
+const FBV = 'https://www.gstatic.com/firebasejs/10.12.2/';
+let names = {};                                 // names everyone sees (Firebase: settings/names)
 let localNames = store.get('fp-names', {});    // names a visitor typed, kept in their own browser
-let TOKEN = store.get('fp-gh-token', null), IS_OWNER = false, hiddenFailed = false;
+let IS_OWNER = false, ME = null, hiddenFailed = false, FB = null;
 let hiddenIds = new Set(), HP = new Set(), ORIG = null;
 const vis = i => !HP.has(i);
 const shownPeople = () => PEOPLE.filter(p => !p.hidden && p.photos.length);
@@ -233,58 +235,89 @@ function applyHidden(){
   const np = shownPeople().length, nph = P.filter((_, i) => vis(i)).length;
   $('#lede').textContent = `${np} people found in ${nph.toLocaleString()} recovered photos. Pick a face to see every photo that person is in.`;
 }
-async function gh(path, opts = {}){
-  const r = await fetch('https://api.github.com/repos/' + REPO + path, {...opts, headers: {Authorization: 'Bearer ' + TOKEN, Accept: 'application/vnd.github+json', ...(opts.headers || {})}});
-  if(!r.ok) throw Object.assign(new Error('GitHub ' + r.status), {status: r.status});
-  return r.json();
-}
-async function checkOwner(){
-  if(!TOKEN) return false;
-  try{ const r = await gh(''); return !!(r.permissions && r.permissions.push); }catch(e){ return false; }
-}
-async function putJSON(file, obj, message){
-  let sha;
-  try{ sha = (await gh('/contents/' + file)).sha; }catch(e){ if(e.status !== 404) throw e; }
-  const content = btoa(unescape(encodeURIComponent(JSON.stringify(obj, null, 1) + '\n')));
-  await gh('/contents/' + file, {method: 'PUT', body: JSON.stringify({message, content, sha})});
-}
 const getJSON = f => fetch(f + '?v=' + Date.now(), {cache: 'no-store'}).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); });
-const capsReady = Promise.all([
-  getJSON('names.json').then(v => { if(v && typeof v === 'object') for(const k in v) if(typeof v[k] === 'string') names[k] = v[k].slice(0, 60); }).catch(() => {}),
-  getJSON('hidden.json').then(v => { hiddenIds = new Set(Array.isArray(v?.ids) ? v.ids.filter(Number.isInteger) : []); }).catch(() => { hiddenFailed = true; }),
-  checkOwner().then(ok => { IS_OWNER = ok; }),
-  getJSON('videos.json').then(v => { if(Array.isArray(v)) VIDEOS = v; }).catch(() => {})
-]);
+const cleanNames = v => { const o = {}; if(v && typeof v === 'object') for(const k in v) if(/^\d+$/.test(k) && typeof v[k] === 'string' && v[k].trim()) o[k] = v[k].trim().slice(0, 60); return o; };
+const cleanIds = v => Array.isArray(v) ? v.filter(Number.isInteger) : [];
+let legacy = {names: {}, ids: []};             // what the earlier GitHub version saved, moved over on first sign-in
+const capsReady = (async () => {
+  const [appM, authM, fsM] = await Promise.all([import(FBV + 'firebase-app.js'), import(FBV + 'firebase-auth.js'), import(FBV + 'firebase-firestore.js')]);
+  const app = appM.initializeApp(FB_CONFIG);
+  FB = {auth: authM.getAuth(app), db: fsM.getFirestore(app), A: authM, F: fsM};
+  getJSON('names.json').then(v => { legacy.names = cleanNames(v); }).catch(() => {});
+  getJSON('hidden.json').then(v => { legacy.ids = cleanIds(v?.ids); }).catch(() => {});
+  const first = (ref, apply) => new Promise(res => {
+    let done = false;
+    const t = setTimeout(() => { if(!done){ done = true; res(false); } }, 10000);
+    fsM.onSnapshot(ref, s => {
+      apply(s.exists() ? s.data() : null);
+      if(!done){ done = true; clearTimeout(t); res(true); }
+      else if(P){ if(apply === applyHiddenDoc) applyHidden(); if(!/^(nm|nmi-)/.test(document.activeElement?.id || '')) { route(); } }
+    }, () => { if(!done){ done = true; clearTimeout(t); res(false); } });
+  });
+  const okH = await first(fsM.doc(FB.db, 'settings', 'hidden'), applyHiddenDoc);
+  if(!okH) hiddenFailed = true;
+  await first(fsM.doc(FB.db, 'settings', 'names'), v => { names = cleanNames(v?.names); });
+  await new Promise(res => { let once = false; authM.onAuthStateChanged(FB.auth, async u => { await onUser(u); if(!once){ once = true; res(); } }); });
+})();
+function applyHiddenDoc(v){ hiddenIds = new Set(cleanIds(v?.ids)); }
+async function onUser(u){
+  ME = u; IS_OWNER = !!(u && u.email === OWNER_EMAIL && u.emailVerified);
+  if(u && !IS_OWNER) logVisit(u);
+  if(P){ if(IS_OWNER) addPrivateTab(); else document.querySelector('nav.tabs [data-tab=private]')?.remove(); }
+}
+async function logVisit(u){
+  try{
+    const {F, db} = FB, ref = F.doc(db, 'visits', u.uid), s = await F.getDoc(ref), v = s.exists() ? s.data() : {};
+    const now = Date.now();
+    await F.setDoc(ref, {name: (u.displayName || '').slice(0, 80), email: (u.email || '').slice(0, 120), photo: (u.photoURL || '').slice(0, 500), first: v.first || now, last: now, count: (v.count || 0) + 1});
+  }catch(e){}
+}
+async function saveSettings(doc, data){ const {F, db} = FB; await F.setDoc(F.doc(db, 'settings', doc), data); }
+async function signIn(){
+  try{ await FB.A.signInWithPopup(FB.auth, new FB.A.GoogleAuthProvider()); return null; }
+  catch(e){ return e && e.code === 'auth/popup-blocked' ? 'Your browser blocked the sign-in window. Allow pop-ups for this site and try again.' : (e && e.code === 'auth/popup-closed-by-request' || e?.code === 'auth/popup-closed-by-user') ? 'Sign-in was closed before it finished.' : 'Sign-in didn’t work. Check your connection and try again.'; }
+}
 function addPrivateTab(){
   if(document.querySelector('nav.tabs [data-tab=private]')) return;
   const b = document.createElement('button'); b.setAttribute('role', 'tab'); b.dataset.tab = 'private'; b.setAttribute('aria-selected', 'false'); b.textContent = 'Private'; b.onclick = () => go('#private');
   document.querySelector('nav.tabs').appendChild(b);
 }
+async function adoptLocalNames(){
+  if(!IS_OWNER) return;
+  const merged = {...legacy.names, ...names};
+  Object.keys(localNames).forEach(k => { if(localNames[k]) merged[k] = localNames[k]; });
+  const changed = JSON.stringify(merged) !== JSON.stringify(names);
+  try{
+    if(changed){ await saveSettings('names', {names: merged}); names = merged; }
+    if(!hiddenIds.size && legacy.ids.length){ await saveSettings('hidden', {ids: legacy.ids}); hiddenIds = new Set(legacy.ids); applyHidden(); }
+    localNames = {}; store.set('fp-names', {});
+    if(P) refreshNames();
+  }catch(e){}
+}
 function renderOwner(){
   setTab('');
+  const who = ME ? (ME.displayName || ME.email) : '';
   main.innerHTML = `
     <button class="back" id="bk">Back to everyone</button>
     <section class="ev">
-      <h3>Owner sign-in</h3>
-      ${IS_OWNER ? `<div class="evmeta">You're signed in as the owner on this browser. Names you give people and faces you hide are saved for everyone.</div>
-        <p style="display:flex;gap:10px;flex-wrap:wrap"><button class="more" style="margin:0" id="go-private">Open the Private tab</button><button class="back" style="margin:0" id="signout">Sign out on this browser</button></p>`
-      : `<div class="evmeta">Paste the GitHub access key for this site's repository. It's saved only in this browser and lets you rename people and hide faces for everyone.</div>
-        <form id="tf" style="display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 60px">
-          <input class="search" id="tok" type="password" autocomplete="off" placeholder="github_pat_…" aria-label="GitHub access key">
-          <button class="more" style="margin:0" type="submit">Sign in</button>
-        </form><p class="hint" id="ts" aria-live="polite"></p>`}
+      <h3>Sign in</h3>
+      ${!FB ? '<div class="evmeta">Sign-in is still loading. Try again in a moment.</div>'
+      : IS_OWNER ? `<div class="evmeta">You’re signed in as ${esc(who)}, the owner. Names you give people and faces you hide are saved for everyone.</div>
+        <p style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:60px"><button class="more" style="margin:0" id="go-private">Open the Private tab</button><button class="back" style="margin:0" id="signout">Sign out</button></p>`
+      : ME ? `<div class="evmeta">You’re signed in as ${esc(who)}. Thanks for visiting. Only the site’s owner can rename people for everyone or hide faces.</div>
+        <p style="margin-bottom:60px"><button class="back" style="margin:0" id="signout">Sign out</button></p>`
+      : `<div class="evmeta">Sign in with your Google account. The owner can rename people and hide faces for everyone; family members who sign in let the owner see who has visited.</div>
+        <p style="margin:16px 0 60px"><button class="more" style="margin:0" id="gsi">Sign in with Google</button></p><p class="hint" id="ts" aria-live="polite"></p>`}
     </section>`;
   $('#bk').onclick = () => go('#people');
-  if(IS_OWNER){
-    $('#go-private').onclick = () => go('#private');
-    $('#signout').onclick = () => { TOKEN = null; IS_OWNER = false; store.set('fp-gh-token', null); document.querySelector('nav.tabs [data-tab=private]')?.remove(); renderOwner(); };
-  } else {
-    $('#tf').onsubmit = async e => {
-      e.preventDefault(); TOKEN = $('#tok').value.trim(); $('#ts').textContent = 'Checking…';
-      if(await checkOwner()){ IS_OWNER = true; store.set('fp-gh-token', TOKEN); addPrivateTab(); await adoptLocalNames(); go('#private'); }
-      else { TOKEN = null; $('#ts').textContent = 'That key doesn’t have write access to this site’s repository. Check that it allows Contents: Read and write for this repository.'; }
-    };
-  }
+  $('#go-private') && ($('#go-private').onclick = () => go('#private'));
+  $('#signout') && ($('#signout').onclick = async () => { await FB.A.signOut(FB.auth); renderOwner(); });
+  $('#gsi') && ($('#gsi').onclick = async () => {
+    $('#ts').textContent = 'Opening Google sign-in…';
+    const err = await signIn();
+    if(err){ $('#ts').textContent = err; return; }
+    if(IS_OWNER){ addPrivateTab(); await adoptLocalNames(); go('#private'); } else renderOwner();
+  });
 }
 function renderPrivate(){
   if(!IS_OWNER) return renderOwner();
@@ -293,7 +326,7 @@ function renderPrivate(){
   main.innerHTML = `
     <section class="ev">
       <h3>Hide people</h3>
-      <div class="evmeta">Only you can use this tab. Tap a face to hide that person: every photo they appear in disappears from the site for everyone, including you. Tap again to show them. Visitors see the change within about a minute.</div>
+      <div class="evmeta">Only you can use this tab. Tap a face to hide that person: every photo they appear in disappears from the site for everyone, including you. Tap again to show them.</div>
       <p class="hint" id="hs" aria-live="polite">${hiddenIds.size ? `${hiddenIds.size} hidden · ${HP.size} photos hidden` : 'No one is hidden.'}</p>
       <div class="people" id="hp" style="padding-bottom:30px">${all.map((p, i) => `
         <button class="person ${p.hidden ? 'off' : ''}" style="--i:${Math.min(i, 40)}" data-id="${p.id}" aria-pressed="${p.hidden}" aria-label="${esc(nameOf(p))}, ${p.hidden ? 'hidden' : 'shown'}">
@@ -304,9 +337,22 @@ function renderPrivate(){
     </section>
     <section class="ev">
       <h3>Who opened the site</h3>
-      <div class="evmeta" style="margin-bottom:60px">GitHub Pages doesn't record visitors, so this site can't list who opened it.</div>
+      <div class="evmeta">Family members who signed in with Google, newest first. People who look without signing in aren’t recorded.</div>
+      <div id="vv"><p class="empty">Loading visits…</p></div>
     </section>`;
   main.querySelectorAll('#hp .person').forEach(b => b.onclick = () => toggleHidden(+b.dataset.id));
+  drawVisits();
+}
+async function drawVisits(){
+  try{
+    const {F, db} = FB, snap = await F.getDocs(F.collection(db, 'visits'));
+    const rows = snap.docs.map(d => d.data()).sort((a, b) => (b.last || 0) - (a.last || 0));
+    const vv = $('#vv'); if(!vv) return;
+    if(!rows.length){ vv.innerHTML = '<p class="empty" style="margin-bottom:60px">No one has signed in yet.</p>'; return; }
+    const when = t => t ? new Date(t).toLocaleString(undefined, {day:'numeric', month:'short', year:'numeric', hour:'numeric', minute:'2-digit'}) : '';
+    vv.innerHTML = `<div class="vt"><table><thead><tr><th>Person</th><th>Email</th><th>Last visit</th><th>First visit</th><th>Visits</th></tr></thead><tbody>${rows.map(() => '<tr><td></td><td></td><td></td><td></td><td></td></tr>').join('')}</tbody></table></div>`;
+    vv.querySelectorAll('tbody tr').forEach((tr, k) => { const r = rows[k], td = tr.children; td[0].textContent = r.name || 'Unknown'; td[1].textContent = r.email || ''; td[2].textContent = when(r.last); td[3].textContent = when(r.first); td[4].textContent = r.count || 1; });
+  }catch(e){ const v = $('#vv'); if(v) v.innerHTML = '<p class="empty">Visits couldn’t be loaded. Reload the page to try again.</p>'; }
 }
 let hideBusy = false;
 async function toggleHidden(id){
@@ -314,9 +360,9 @@ async function toggleHidden(id){
   const next = new Set(hiddenIds); next.has(id) ? next.delete(id) : next.add(id);
   $('#hs').textContent = 'Saving…';
   try{
-    await putJSON('hidden.json', {ids: [...next].sort((a, b) => a - b)}, 'Update hidden people');
+    await saveSettings('hidden', {ids: [...next].sort((a, b) => a - b)});
     hiddenIds = next; applyHidden(); hideBusy = false; renderPrivate();
-  }catch(e){ hideBusy = false; $('#hs').textContent = e.status === 401 || e.status === 403 ? 'Your access key stopped working. Sign in again from Owner sign-in.' : 'That change didn’t save. Check your connection and tap the face again.'; }
+  }catch(e){ hideBusy = false; $('#hs').textContent = 'That change didn’t save. Sign in again from the Sign in link, then tap the face again.'; }
 }
 function refreshNames(){
   document.querySelectorAll('.person[data-id]').forEach(b => { const p = PEOPLE[+b.dataset.id]; const n = b.querySelector('.nm, .ct'); if(n && n.classList.contains('nm')) n.textContent = nameOf(p); else if(n && !b.querySelector('.nm')) n.textContent = nameOf(p); b.setAttribute('aria-label', nameOf(p)); });
@@ -328,23 +374,14 @@ async function saveName(id, v){
   if(!IS_OWNER){
     if(v) localNames[id] = v; else delete localNames[id];
     store.set('fp-names', localNames);
-    return 'Saved in this browser only. The owner’s names are the ones everyone sees.';
+    return 'Saved in this browser only. Sign in as the owner to save names for everyone.';
   }
   const prev = names[id];
   if(v) names[id] = v; else delete names[id];
-  const job = nameBusy.then(() => putJSON('names.json', names, 'Update names'));
+  const job = nameBusy.then(() => saveSettings('names', {names}));
   nameBusy = job.catch(() => {});
-  try{ await job; return 'Saved for everyone. Visitors see it within about a minute.'; }
-  catch(e){
-    if(prev) names[id] = prev; else delete names[id];
-    return e.status === 401 || e.status === 403 ? 'Your access key stopped working. Sign in again from Owner sign-in.' : 'The name didn’t save. Check your connection and press Enter again.';
-  }
-}
-async function adoptLocalNames(){
-  const extra = Object.keys(localNames).filter(k => localNames[k] && names[k] !== localNames[k]);
-  if(!extra.length) return;
-  const merged = {...names}; extra.forEach(k => merged[k] = localNames[k]);
-  try{ await putJSON('names.json', merged, 'Save names typed before signing in'); names = merged; localNames = {}; store.set('fp-names', {}); if(P) refreshNames(); }catch(e){}
+  try{ await job; return 'Saved for everyone.'; }
+  catch(e){ if(prev) names[id] = prev; else delete names[id]; return 'The name didn’t save. Sign in again, then press Enter.'; }
 }
 const nameOf = p => names[p.id] || localNames[p.id] || `Person ${p.id+1}`;
 const peopleIn = {}; // photo index -> [person ids]
@@ -662,7 +699,7 @@ fetch('data.json').then(r => { if(!r.ok) throw new Error(r.status); return r.jso
   D = data; P = D.photos; PEOPLE = D.people;
   main.innerHTML = '<p class="empty">Loading the family photos…</p>';
   return capsReady.catch(() => {}).then(() => {
-    if(hiddenFailed){ main.innerHTML = '<p class="empty">The list of hidden people didn’t load, so the photos are held back. Reload the page to try again.</p>'; return; }
+    if(hiddenFailed || !FB){ main.innerHTML = '<p class="empty">The list of hidden people didn’t load, so the photos are held back. Reload the page to try again.</p>'; return; }
     applyHidden();
     if(IS_OWNER){ addPrivateTab(); adoptLocalNames(); }
     route();
