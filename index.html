@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Family Photos</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rozha+One&family=Hind:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --peacock:#0d3a40;      /* page */
+  --peacock-deep:#082a2f; /* panels */
+  --peacock-line:#1d5a61;
+  --marigold:#f2a51a;     /* the one accent */
+  --silk:#f4ece0;         /* text */
+  --mist:#a9c3c2;         /* secondary text */
+  --ring:rgba(242,165,26,.0);
+  --r-face:50%;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--peacock);color:var(--silk);font:400 17px/1.55 Hind,system-ui,sans-serif}
+body{min-height:100vh;background:
+  radial-gradient(1200px 600px at 85% -10%, #155159 0%, transparent 60%),
+  radial-gradient(900px 500px at -10% 110%, #0a3237 0%, transparent 60%), var(--peacock)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--marigold);outline-offset:3px}
+.wrap{max-width:1240px;margin:0 auto;padding-block:0;padding-left:max(28px,env(safe-area-inset-left,0px));padding-right:max(28px,env(safe-area-inset-right,0px))}
+
+/* header */
+header.top{padding:56px 0 28px}
+h1{font:400 clamp(46px,8vw,104px)/.95 "Rozha One",serif;margin:0;letter-spacing:-.01em}
+h1 .mark{display:inline-block;width:.42em;height:.42em;border-radius:50%;background:var(--marigold);margin-left:.16em;vertical-align:.12em;box-shadow:0 0 0 .1em rgba(242,165,26,.25)}
+.lede{max-width:56ch;color:var(--mist);margin:14px 0 0;font-size:19px}
+nav.tabs{display:flex;gap:6px;margin-top:30px;flex-wrap:wrap}
+nav.tabs button{background:none;border:1px solid var(--peacock-line);border-radius:999px;padding:8px 18px;cursor:pointer;color:var(--mist);transition:background .2s,color .2s,border-color .2s}
+nav.tabs button[aria-selected=true]{background:var(--marigold);border-color:var(--marigold);color:#2a1a00;font-weight:600}
+.tools{display:flex;gap:14px;align-items:center;margin:26px 0 8px;flex-wrap:wrap}
+.search{flex:1 1 240px;max-width:360px;background:var(--peacock-deep);border:1px solid var(--peacock-line);border-radius:999px;padding:10px 18px;color:var(--silk);font:inherit}
+.search::placeholder{color:#6f9a9a}
+label.toggle{color:var(--mist);font-size:15px;display:flex;gap:8px;align-items:center;cursor:pointer}
+label.toggle input{accent-color:var(--marigold);width:18px;height:18px}
+
+/* people grid: the signature */
+.people{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:34px 22px;padding:26px 0 80px}
+.person{background:none;border:0;padding:0;cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;opacity:0;transform:scale(.6) rotate(-8deg);animation:bloom .7s cubic-bezier(.2,.9,.25,1.25) forwards;animation-delay:calc(var(--i)*22ms)}
+.person .ph{position:relative;width:118px;height:118px;border-radius:var(--r-face)}
+.person .ph::before{content:"";position:absolute;inset:-7px;border-radius:50%;
+  background:conic-gradient(from var(--a,0deg),var(--marigold),transparent 30%,transparent 70%,var(--marigold));
+  opacity:0;transition:opacity .35s}
+.person img{position:relative;width:100%;height:100%;border-radius:50%;object-fit:cover;border:3px solid var(--peacock-deep);transition:transform .35s cubic-bezier(.2,.9,.25,1.2)}
+.person:hover .ph::before,.person:focus-visible .ph::before{opacity:1;animation:spin 2.4s linear infinite}
+.person:hover img{transform:scale(1.06)}
+.person:focus-visible{outline:none}
+.person .nm{font-weight:600;font-size:15px;line-height:1.2}
+.person .ct{font-size:13px;color:var(--mist);margin-top:-8px}
+.person.big .ph{width:148px;height:148px}
+.pcard{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
+.ren{background:none;border:0;color:var(--mist);font-size:13px;cursor:pointer;padding:2px 8px;border-radius:999px;text-decoration:underline;text-decoration-color:var(--peacock-line);text-underline-offset:3px}
+.ren:hover{color:var(--marigold)}
+.ren-in{width:100%;max-width:150px;background:var(--peacock-deep);border:1px solid var(--marigold);border-radius:8px;color:var(--silk);font:inherit;font-size:14px;padding:4px 8px;text-align:center}
+.person.off img{filter:grayscale(1);opacity:.35}
+.person.off .ct{color:var(--marigold)}
+.vt{overflow-x:auto;margin-bottom:60px}
+.vt table{border-collapse:collapse;min-width:520px;width:100%;font-size:15px;font-variant-numeric:tabular-nums}
+.vt th{text-align:left;color:var(--mist);font-weight:500;padding:8px 12px;border-bottom:1px solid var(--peacock-line)}
+.vt td{padding:10px 12px;border-bottom:1px solid var(--peacock-line)}
+@property --a{syntax:"<angle>";inherits:false;initial-value:0deg}
+@keyframes spin{to{--a:360deg}}
+@keyframes bloom{to{opacity:1;transform:none}}
+
+/* gallery view */
+.gallery-head{display:flex;gap:28px;align-items:center;padding:40px 0 10px;flex-wrap:wrap}
+.gallery-head .hero{width:168px;height:168px;border-radius:50%;object-fit:cover;border:5px solid var(--marigold);box-shadow:0 18px 50px rgba(0,0,0,.35)}
+.gallery-head h2{font:400 clamp(38px,5vw,64px)/1 "Rozha One",serif;margin:0}
+.gallery-head .sub{color:var(--mist);margin-top:8px}
+.namebox{background:transparent;border:0;border-bottom:2px dashed var(--peacock-line);color:var(--silk);font:400 clamp(38px,5vw,64px)/1.05 "Rozha One",serif;width:min(100%,14ch);padding:0}
+.namebox:focus{outline:none;border-bottom-color:var(--marigold)}
+.back{background:none;border:1px solid var(--peacock-line);border-radius:999px;padding:8px 18px;cursor:pointer;color:var(--mist);margin-top:30px}
+.back:hover{color:var(--silk);border-color:var(--mist)}
+.hint{font-size:14px;color:#7fa4a3;margin-top:6px}
+section.ev{margin:34px 0 10px}
+section.ev h3{font:400 28px/1.15 "Rozha One",serif;margin:0 0 4px;overflow-wrap:anywhere}
+section.ev .evmeta{color:var(--mist);font-size:15px;margin-bottom:14px}
+.grid{columns:4 230px;column-gap:12px}
+.tile{break-inside:avoid;margin:0 0 12px;position:relative;display:block;width:100%;border:0;padding:0;background:var(--peacock-deep);border-radius:10px;overflow:hidden;cursor:zoom-in}
+.tile img{display:block;width:100%;height:auto;transition:transform .5s ease,filter .3s}
+.tile:hover img{transform:scale(1.04)}
+.tile .fx{position:absolute;border:2px solid var(--marigold);border-radius:50%;box-shadow:0 0 0 999px rgba(8,42,47,.0);opacity:0;transition:opacity .25s}
+.tile:hover .fx{opacity:1}
+.tile.miss{aspect-ratio:4/3;display:grid;place-items:center;color:var(--mist);font-size:14px}
+.more{display:block;margin:20px auto 80px;background:none;border:1px solid var(--marigold);color:var(--marigold);border-radius:999px;padding:10px 24px;cursor:pointer}
+
+/* events view */
+.events{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:22px;padding:24px 0 80px}
+.evcard{background:none;border:0;padding:0;text-align:left;cursor:pointer;color:inherit}
+.evcard .stack{position:relative;aspect-ratio:4/3;margin-bottom:12px}
+.evcard .stack img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:12px;border:3px solid var(--peacock-deep);transition:transform .45s cubic-bezier(.2,.9,.25,1.2)}
+.evcard .stack img:nth-child(1){transform:rotate(-4deg) translate(-6px,4px)}
+.evcard .stack img:nth-child(2){transform:rotate(3deg) translate(6px,2px)}
+.evcard:hover .stack img:nth-child(1){transform:rotate(-9deg) translate(-22px,6px)}
+.evcard:hover .stack img:nth-child(2){transform:rotate(8deg) translate(22px,2px)}
+.evcard:hover .stack img:nth-child(3){transform:translateY(-6px)}
+.evcard .t{font-weight:600;font-size:18px;line-height:1.25}
+.evcard .m{color:var(--mist);font-size:14px}
+
+/* lightbox */
+.lb{position:fixed;inset:0;background:rgba(4,22,25,.94);display:none;z-index:50;align-items:center;justify-content:center}
+.lb.on{display:flex;animation:fade .25s ease}
+@keyframes fade{from{opacity:0}}
+.lb figure{margin:0;position:relative;max-width:92vw;max-height:84vh}
+.lb .imgwrap{position:relative;display:inline-block}
+.lb img{display:block;max-width:92vw;max-height:80vh;border-radius:6px;animation:pop .35s cubic-bezier(.2,.9,.25,1.15)}
+@keyframes pop{from{transform:scale(.94);opacity:.3}}
+.lb .ring{position:absolute;border:3px solid var(--marigold);border-radius:50%;pointer-events:none;animation:ringin .6s .15s both cubic-bezier(.2,.9,.25,1.3)}
+@keyframes ringin{from{transform:scale(1.8);opacity:0}}
+.lb figcaption{color:var(--mist);text-align:center;margin-top:12px;font-size:15px}
+.lb figcaption b{color:var(--silk);font-weight:600}
+.lb .nav{position:fixed;top:50%;transform:translateY(-50%);background:rgba(13,58,64,.8);border:1px solid var(--peacock-line);width:52px;height:52px;border-radius:50%;cursor:pointer;font-size:24px}
+.lb .prev{left:18px}.lb .next{right:18px}
+.lb .x{position:fixed;top:calc(16px + env(safe-area-inset-top,0px));right:calc(18px + env(safe-area-inset-right,0px));background:none;border:1px solid var(--peacock-line);border-radius:999px;padding:6px 16px;cursor:pointer}
+.lb .people-in{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+.lb .people-in button{background:none;border:0;padding:0;cursor:pointer}
+.lb .people-in img{width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid var(--peacock-line);animation:none;max-width:none}
+.lb .people-in button:hover img{border-color:var(--marigold)}
+
+footer{color:#6f9a9a;font-size:14px;padding:30px 0 50px;border-top:1px solid var(--peacock-line)}
+.empty{color:var(--mist);padding:40px 0}
+@media (max-width:600px){
+  .wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .people{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:24px 12px}
+  .person .ph,.person.big .ph{width:90px;height:90px}
+  .grid{columns:2 140px}
+  .lb .nav{width:42px;height:42px;top:auto;bottom:18px;transform:none}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before{animation:none!important;transition:none!important}
+  .person{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+
+
+<div class="wrap">
+  <header class="top">
+    <h1>Family Photos<span class="mark" aria-hidden="true"></span></h1>
+    <p class="lede" id="lede"></p>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="people" aria-selected="true">People</button>
+      <button role="tab" data-tab="events" aria-selected="false">Events</button>
+      <button role="tab" data-tab="all" aria-selected="false">All photos</button>
+    </nav>
+  </header>
+  <main id="main"></main>
+  <footer>Photos here are small previews; the full-size originals are in the Family Photos folder on Google Drive. Use Rename under a face, or click the name on a person's page, to name someone. <button class="ren" id="ownerlink">Owner sign-in</button></footer>
+</div>
+
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Photo viewer">
+  <button class="x" id="lbx">Close</button>
+  <button class="nav prev" id="lbp" aria-label="Previous photo">‹</button>
+  <figure>
+    <div class="imgwrap" id="lbw"><img id="lbi" alt=""></div>
+    <figcaption id="lbc"></figcaption>
+    <div class="people-in" id="lbpe"></div>
+  </figure>
+  <button class="nav next" id="lbn" aria-label="Next photo">›</button>
+</div>
+
+<script>
+let D, P, PEOPLE;
+const $ = s => document.querySelector(s);
+const main = $('#main');
+const store = {
+  get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v);}catch(e){return d;} },
+  set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch(e){} }
+};
+/* ---------- shared names and hidden people (stored in this site's GitHub repository) ---------- */
+const REPO = 'bsaisuryacharan/family-photos-pkpep8jg';
+let names = {};                                 // names everyone sees (names.json)
+let localNames = store.get('fp-names', {});    // names a visitor typed, kept in their own browser
+let TOKEN = store.get('fp-gh-token', null), IS_OWNER = false, hiddenFailed = false;
+let hiddenIds = new Set(), HP = new Set(), ORIG = null;
+const vis = i => !HP.has(i);
+const shownPeople = () => PEOPLE.filter(p => !p.hidden && p.photos.length);
+function applyHidden(){
+  if(!ORIG) ORIG = PEOPLE.map(p => p.photos.slice());
+  HP = new Set(); hiddenIds.forEach(id => (ORIG[id] || []).forEach(i => HP.add(i)));
+  PEOPLE.forEach(p => { p.hidden = hiddenIds.has(p.id); p.photos = ORIG[p.id].filter(vis); });
+  for(const k in peopleIn) delete peopleIn[k];
+  PEOPLE.forEach(p => { if(!p.hidden) p.photos.forEach(i => (peopleIn[i] ||= []).push(p.id)); });
+  EVENTS = eventList().map(g => g[0]);
+  const np = shownPeople().length, nph = P.filter((_, i) => vis(i)).length;
+  $('#lede').textContent = `${np} people found in ${nph.toLocaleString()} recovered photos. Pick a face to see every photo that person is in.`;
+}
+async function gh(path, opts = {}){
+  const r = await fetch('https://api.github.com/repos/' + REPO + path, {...opts, headers: {Authorization: 'Bearer ' + TOKEN, Accept: 'application/vnd.github+json', ...(opts.headers || {})}});
+  if(!r.ok) throw Object.assign(new Error('GitHub ' + r.status), {status: r.status});
+  return r.json();
+}
+async function checkOwner(){
+  if(!TOKEN) return false;
+  try{ const r = await gh(''); return !!(r.permissions && r.permissions.push); }catch(e){ return false; }
+}
+async function putJSON(file, obj, message){
+  let sha;
+  try{ sha = (await gh('/contents/' + file)).sha; }catch(e){ if(e.status !== 404) throw e; }
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(obj, null, 1) + '\n')));
+  await gh('/contents/' + file, {method: 'PUT', body: JSON.stringify({message, content, sha})});
+}
+const getJSON = f => fetch(f + '?v=' + Date.now(), {cache: 'no-store'}).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); });
+const capsReady = Promise.all([
+  getJSON('names.json').then(v => { if(v && typeof v === 'object') for(const k in v) if(typeof v[k] === 'string') names[k] = v[k].slice(0, 60); }).catch(() => {}),
+  getJSON('hidden.json').then(v => { hiddenIds = new Set(Array.isArray(v?.ids) ? v.ids.filter(Number.isInteger) : []); }).catch(() => { hiddenFailed = true; }),
+  checkOwner().then(ok => { IS_OWNER = ok; })
+]);
+function addPrivateTab(){
+  if(document.querySelector('nav.tabs [data-tab=private]')) return;
+  const b = document.createElement('button'); b.setAttribute('role', 'tab'); b.dataset.tab = 'private'; b.setAttribute('aria-selected', 'false'); b.textContent = 'Private'; b.onclick = () => go('#private');
+  document.querySelector('nav.tabs').appendChild(b);
+}
+function renderOwner(){
+  setTab('');
+  main.innerHTML = `
+    <button class="back" id="bk">Back to everyone</button>
+    <section class="ev">
+      <h3>Owner sign-in</h3>
+      ${IS_OWNER ? `<div class="evmeta">You're signed in as the owner on this browser. Names you give people and faces you hide are saved for everyone.</div>
+        <p style="display:flex;gap:10px;flex-wrap:wrap"><button class="more" style="margin:0" id="go-private">Open the Private tab</button><button class="back" style="margin:0" id="signout">Sign out on this browser</button></p>`
+      : `<div class="evmeta">Paste the GitHub access key for this site's repository. It's saved only in this browser and lets you rename people and hide faces for everyone.</div>
+        <form id="tf" style="display:flex;gap:10px;flex-wrap:wrap;margin:16px 0 60px">
+          <input class="search" id="tok" type="password" autocomplete="off" placeholder="github_pat_…" aria-label="GitHub access key">
+          <button class="more" style="margin:0" type="submit">Sign in</button>
+        </form><p class="hint" id="ts" aria-live="polite"></p>`}
+    </section>`;
+  $('#bk').onclick = () => go('#people');
+  if(IS_OWNER){
+    $('#go-private').onclick = () => go('#private');
+    $('#signout').onclick = () => { TOKEN = null; IS_OWNER = false; store.set('fp-gh-token', null); document.querySelector('nav.tabs [data-tab=private]')?.remove(); renderOwner(); };
+  } else {
+    $('#tf').onsubmit = async e => {
+      e.preventDefault(); TOKEN = $('#tok').value.trim(); $('#ts').textContent = 'Checking…';
+      if(await checkOwner()){ IS_OWNER = true; store.set('fp-gh-token', TOKEN); addPrivateTab(); go('#private'); }
+      else { TOKEN = null; $('#ts').textContent = 'That key doesn’t have write access to this site’s repository. Check that it allows Contents: Read and write for this repository.'; }
+    };
+  }
+}
+function renderPrivate(){
+  if(!IS_OWNER) return renderOwner();
+  setTab('private');
+  const all = PEOPLE.slice().sort((a, b) => ORIG[b.id].length - ORIG[a.id].length);
+  main.innerHTML = `
+    <section class="ev">
+      <h3>Hide people</h3>
+      <div class="evmeta">Only you can use this tab. Tap a face to hide that person: every photo they appear in disappears from the site for everyone, including you. Tap again to show them. Visitors see the change within about a minute.</div>
+      <p class="hint" id="hs" aria-live="polite">${hiddenIds.size ? `${hiddenIds.size} hidden · ${HP.size} photos hidden` : 'No one is hidden.'}</p>
+      <div class="people" id="hp" style="padding-bottom:30px">${all.map((p, i) => `
+        <button class="person ${p.hidden ? 'off' : ''}" style="--i:${Math.min(i, 40)}" data-id="${p.id}" aria-pressed="${p.hidden}" aria-label="${esc(nameOf(p))}, ${p.hidden ? 'hidden' : 'shown'}">
+          <span class="ph"><img src="${BLANK}" data-fi="${p.id}" alt=""></span>
+          <span class="nm">${esc(nameOf(p))}</span>
+          <span class="ct">${p.hidden ? 'Hidden' : ORIG[p.id].length + ' photos'}</span>
+        </button>`).join('')}</div>
+    </section>
+    <section class="ev">
+      <h3>Who opened the site</h3>
+      <div class="evmeta" style="margin-bottom:60px">GitHub Pages doesn't record visitors, so this site can't list who opened it.</div>
+    </section>`;
+  main.querySelectorAll('#hp .person').forEach(b => b.onclick = () => toggleHidden(+b.dataset.id));
+}
+let hideBusy = false;
+async function toggleHidden(id){
+  if(hideBusy) return; hideBusy = true;
+  const next = new Set(hiddenIds); next.has(id) ? next.delete(id) : next.add(id);
+  $('#hs').textContent = 'Saving…';
+  try{
+    await putJSON('hidden.json', {ids: [...next].sort((a, b) => a - b)}, 'Update hidden people');
+    hiddenIds = next; applyHidden(); hideBusy = false; renderPrivate();
+  }catch(e){ hideBusy = false; $('#hs').textContent = e.status === 401 || e.status === 403 ? 'Your access key stopped working. Sign in again from Owner sign-in.' : 'That change didn’t save. Check your connection and tap the face again.'; }
+}
+function refreshNames(){
+  document.querySelectorAll('.person[data-id]').forEach(b => { const p = PEOPLE[+b.dataset.id]; const n = b.querySelector('.nm, .ct'); if(n && n.classList.contains('nm')) n.textContent = nameOf(p); else if(n && !b.querySelector('.nm')) n.textContent = nameOf(p); b.setAttribute('aria-label', nameOf(p)); });
+  const nm = $('#nm'); if(nm){ const id = +location.hash.split('-')[1]; if(PEOPLE[id]) nm.value = nameOf(PEOPLE[id]); }
+}
+let nameBusy = Promise.resolve();
+async function saveName(id, v){
+  if(!IS_OWNER){
+    if(v) localNames[id] = v; else delete localNames[id];
+    store.set('fp-names', localNames);
+    return 'Saved in this browser only. The owner’s names are the ones everyone sees.';
+  }
+  const prev = names[id];
+  if(v) names[id] = v; else delete names[id];
+  const job = nameBusy.then(() => putJSON('names.json', names, 'Update names'));
+  nameBusy = job.catch(() => {});
+  try{ await job; return 'Saved for everyone. Visitors see it within about a minute.'; }
+  catch(e){
+    if(prev) names[id] = prev; else delete names[id];
+    return e.status === 401 || e.status === 403 ? 'Your access key stopped working. Sign in again from Owner sign-in.' : 'The name didn’t save. Check your connection and press Enter again.';
+  }
+}
+const nameOf = p => names[p.id] || localNames[p.id] || `Person ${p.id+1}`;
+const peopleIn = {}; // photo index -> [person ids]
+
+const BLANK = 'data:image/gif;base64,R0lGODlhAQABAAAAACw=';
+const bundles = {}, urlCache = {};
+const bundle = name => bundles[name] ||= fetch(name).then(r => { if(!r.ok) throw new Error(r.status); return r.arrayBuffer(); });
+const sliceURL = (buf, off, len) => URL.createObjectURL(new Blob([buf.slice(off, off+len)], {type:'image/jpeg'}));
+function photoURL(i){ const b = P[i].b; if(!b) return Promise.reject(new Error('missing')); return urlCache['p'+i] ||= bundle(`photos-${b[0]}.jpg`).then(buf => sliceURL(buf, b[1], b[2])); }
+function faceURL(id){ const f = PEOPLE[id].fb; return urlCache['f'+id] ||= bundle('faces.jpg').then(buf => sliceURL(buf, f[0], f[1])); }
+function fill(img){
+  const p = img.dataset.pi != null ? photoURL(+img.dataset.pi) : faceURL(+img.dataset.fi);
+  p.then(u => { img.src = u; }).catch(() => { const t = img.closest('.tile'); if(t){ t.classList.add('miss'); t.textContent = 'Photo could not be shown'; } else img.remove(); });
+}
+const io = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting){ io.unobserve(e.target); fill(e.target); } }), {rootMargin:'800px'});
+const watchImgs = n => { if(n.nodeType!==1) return; (n.matches('img[data-pi],img[data-fi]') ? [n] : n.querySelectorAll('img[data-pi],img[data-fi]')).forEach(img => io.observe(img)); };
+new MutationObserver(ms => ms.forEach(m => m.addedNodes.forEach(watchImgs))).observe(document.body, {childList:true, subtree:true});
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const niceDate = d => { if(!d) return ''; const [y,m,day] = d.slice(0,10).split('-'); return `${+day} ${MON[+m-1]} ${y}`; };
+const niceMonth = ed => { if(!ed) return ''; const [y,m]=ed.split('-'); return m ? `${MON[+m-1]} ${y}` : y; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+
+
+/* ---------- routing ---------- */
+function go(hash){ if(location.hash!==hash) location.hash = hash; else route(); }
+window.addEventListener('hashchange', route);
+document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => go('#'+b.dataset.tab));
+function setTab(t){ document.querySelectorAll('nav.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab===t)); }
+function route(){
+  const h = location.hash.slice(1) || 'people';
+  const m = h.match(/^(person|event)-(\d+)$/); const view = m ? m[1] : h, arg = m ? m[2] : null;
+  if(view==='person') renderPerson(+arg);
+  else if(view==='events') renderEvents();
+  else if(view==='event') renderEvent(EVENTS[+arg]);
+  else if(view==='all') renderAll();
+  else if(view==='private') renderPrivate();
+  else if(view==='owner') renderOwner();
+  else renderPeople();
+}
+
+/* ---------- people ---------- */
+let showAll = store.get('fp-showall', false), q = '';
+function renderPeople(){
+  setTab('people');
+  main.innerHTML = `
+    <div class="tools">
+      <input class="search" id="q" type="search" placeholder="Find a person by name" value="${esc(q)}" aria-label="Find a person by name">
+      <label class="toggle"><input type="checkbox" id="sa" ${showAll?'checked':''}> Include people seen in only a few photos</label>
+    </div>
+    <div class="people" id="pp"></div>`;
+  $('#q').oninput = e => { q = e.target.value; drawPeople(); };
+  $('#sa').onchange = e => { showAll = e.target.checked; store.set('fp-showall', showAll); drawPeople(); };
+  drawPeople();
+}
+function drawPeople(){
+  const list = shownPeople().filter(p => (showAll || p.photos.length >= 6) && nameOf(p).toLowerCase().includes(q.toLowerCase()));
+  const pp = $('#pp');
+  if(!list.length){ pp.innerHTML = `<p class="empty">No one matches “${esc(q)}”. Names you give people are searchable; unnamed people are listed as Person and a number.</p>`; return; }
+  pp.innerHTML = list.map((p,i) => `
+    <div class="pcard">
+      <button class="person ${p.photos.length>=80?'big':''}" style="--i:${Math.min(i,60)}" data-id="${p.id}" aria-label="${esc(nameOf(p))}, ${p.photos.length} photos">
+        <span class="ph"><img src="${BLANK}" data-fi="${p.id}" alt=""></span>
+        <span class="nm">${esc(nameOf(p))}</span>
+        <span class="ct">${p.photos.length} photos</span>
+      </button>
+      <button class="ren" data-id="${p.id}" aria-label="Rename ${esc(nameOf(p))}">Rename</button>
+    </div>`).join('');
+  pp.querySelectorAll('.person').forEach(b => b.onclick = () => openPerson(b));
+  pp.querySelectorAll('.ren').forEach(b => b.onclick = () => startRename(b));
+}
+function startRename(btn){
+  const id = +btn.dataset.id, p = PEOPLE[id], card = btn.closest('.pcard');
+  const nmEl = card.querySelector('.nm'), ctEl = card.querySelector('.ct');
+  const inp = document.createElement('input');
+  inp.className = 'ren-in'; inp.id = 'ren-' + id; inp.value = names[id] || ''; inp.placeholder = nameOf(p); inp.maxLength = 60;
+  inp.setAttribute('aria-label', 'Name for ' + nameOf(p));
+  btn.hidden = true; card.appendChild(inp); inp.focus();
+  let finished = false;
+  const finish = async keep => {
+    if(finished) return; finished = true;
+    const v = inp.value.trim().slice(0, 60);
+    inp.remove(); btn.hidden = false;
+    if(!keep || v === (names[id] || '')) return;
+    ctEl.textContent = 'Saving…';
+    const msg = await saveName(id, v);
+    nmEl.textContent = nameOf(p);
+    btn.setAttribute('aria-label', 'Rename ' + nameOf(p));
+    card.querySelector('.person').setAttribute('aria-label', `${nameOf(p)}, ${p.photos.length} photos`);
+    ctEl.textContent = msg.startsWith('Saved') ? 'Saved' : 'Not saved';
+    ctEl.title = msg;
+    setTimeout(() => { ctEl.textContent = `${p.photos.length} photos`; ctEl.title = ''; }, 2500);
+  };
+  inp.onkeydown = e => { if(e.key === 'Enter') finish(true); else if(e.key === 'Escape') finish(false); };
+  inp.onblur = () => finish(true);
+}
+function openPerson(btn){
+  const id = +btn.dataset.id, img = btn.querySelector('img');
+  const from = img.getBoundingClientRect();
+  try{ sessionStorage.setItem('fp-from', JSON.stringify({x:from.left,y:from.top,w:from.width})); }catch(e){}
+  go('#person-'+id);
+}
+
+/* ---------- photo grid helpers ---------- */
+function tile(i, personId){
+  const ph = P[i]; const box = personId!=null ? PEOPLE[personId].box[i] : null;
+  const fx = box ? `<span class="fx" style="left:${box[0]*100-1}%;top:${box[1]*100-1}%;width:${box[2]*100+2}%;height:${box[3]*100+2}%"></span>` : '';
+  const ar = ph.w && ph.h ? `aspect-ratio:${ph.w}/${ph.h}` : '';
+  return `<button class="tile" data-i="${i}" style="${ar}" aria-label="Open photo${ph.d?' from '+niceDate(ph.d):''}"><img src="${BLANK}" data-pi="${i}" alt="">${fx}</button>`;
+}
+function groupByEvent(idxs){
+  const g = new Map();
+  idxs.forEach(i => { const k = P[i].e; if(!g.has(k)) g.set(k, []); g.get(k).push(i); });
+  return [...g.entries()].sort((a,b) => (P[a[1][0]].ed||'9999').localeCompare(P[b[1][0]].ed||'9999') || a[0].localeCompare(b[0]));
+}
+function wireTiles(root, seq, personId){
+  root.querySelectorAll('.tile').forEach(t => t.onclick = () => openLB(seq, seq.indexOf(+t.dataset.i), personId));
+}
+
+/* ---------- person ---------- */
+function renderPerson(id){
+  const p = PEOPLE[id]; if(!p || p.hidden || !p.photos.length) return renderPeople();
+  setTab('people');
+  const groups = groupByEvent(p.photos);
+  const seq = groups.flatMap(g => g[1]);
+  main.innerHTML = `
+    <button class="back" id="bk">Back to everyone</button>
+    <div class="gallery-head">
+      <img class="hero" id="hero" src="${BLANK}" data-fi="${p.id}" alt="">
+      <div>
+        <input class="namebox" id="nm" value="${esc(nameOf(p))}" aria-label="Name for this person">
+        <div class="sub">${p.photos.length} photos across ${groups.length} events</div>
+        <div class="hint" id="hint" aria-live="polite">Type a name and press Enter to save it for everyone.</div>
+      </div>
+    </div>
+    ${groups.map(([ev, idxs]) => `
+      <section class="ev">
+        <h3>${esc(ev)}</h3>
+        <div class="evmeta">${idxs.length} photo${idxs.length>1?'s':''}${P[idxs[0]].ed?' · '+niceMonth(P[idxs[0]].ed):''}</div>
+        <div class="grid">${idxs.map(i => tile(i, id)).join('')}</div>
+      </section>`).join('')}`;
+  $('#bk').onclick = () => go('#people');
+  const nm = $('#nm');
+  let saving = false;
+  const save = async () => {
+    const v = nm.value.trim().slice(0, 60);
+    if(saving || v === (names[id] || '')) { nm.value = nameOf(p); return; }
+    saving = true; $('#hint').textContent = 'Saving…';
+    const msg = await saveName(id, v);
+    saving = false; nm.value = nameOf(p); $('#hint').textContent = msg;
+  };
+  nm.onkeydown = e => { if(e.key==='Enter'){ save(); nm.blur(); } };
+  nm.onblur = save;
+  wireTiles(main, seq, id);
+  window.scrollTo(0,0);
+  // shared-element zoom from the face the user picked
+  let from = null; try{ from = JSON.parse(sessionStorage.getItem('fp-from') || 'null'); sessionStorage.removeItem('fp-from'); }catch(e){}
+  const hero = $('#hero');
+  if(from && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+    const to = hero.getBoundingClientRect();
+    const s = from.w / to.width;
+    hero.animate([{transform:`translate(${from.x-to.left}px,${from.y-to.top}px) scale(${s})`},{transform:'none'}],{duration:520,easing:'cubic-bezier(.2,.9,.25,1.1)'});
+    main.querySelectorAll('section.ev').forEach((s,k) => s.animate([{opacity:0,transform:'translateY(18px)'},{opacity:1,transform:'none'}],{duration:450,delay:180+Math.min(k,6)*60,fill:'both',easing:'ease-out'}));
+  }
+}
+
+/* ---------- events ---------- */
+function eventList(){
+  return groupByEvent(P.map((_,i)=>i).filter(vis));
+}
+function renderEvents(){
+  setTab('events');
+  const evs = eventList();
+  main.innerHTML = `<div class="events">${evs.map(([ev, idxs]) => {
+    const good = idxs.filter(i => !P[i].x);
+    const ranked = (good.length ? good : idxs).slice().sort((a,b) => (peopleIn[b]||[]).length - (peopleIn[a]||[]).length);
+    const pick = [ranked[2] ?? ranked[0], ranked[1] ?? ranked[0], ranked[0]];
+    return `<button class="evcard" data-ev="${esc(ev)}">
+      <div class="stack">${pick.map(i => `<img src="${BLANK}" data-pi="${i}" alt="">`).join('')}</div>
+      <div class="t">${esc(ev)}</div>
+      <div class="m">${idxs.length} photo${idxs.length>1?'s':''}${P[idxs[0]].ed?' · '+niceMonth(P[idxs[0]].ed):''}</div>
+    </button>`;}).join('')}</div>`;
+  main.querySelectorAll('.evcard').forEach(b => b.onclick = () => go('#event-'+EVENTS.indexOf(b.dataset.ev)));
+}
+function renderEvent(ev){
+  setTab('events');
+  const idxs = P.map((_,i)=>i).filter(i => P[i].e===ev && vis(i));
+  if(!idxs.length) return renderEvents();
+  const faces = shownPeople().filter(p => p.photos.some(i => P[i].e===ev)).sort((a,b)=>b.photos.filter(i=>P[i].e===ev).length-a.photos.filter(i=>P[i].e===ev).length).slice(0,14);
+  main.innerHTML = `
+    <button class="back" id="bk">Back to events</button>
+    <section class="ev">
+      <h3 style="font-size:clamp(34px,5vw,56px)">${esc(ev)}</h3>
+      <div class="evmeta">${idxs.length} photos${P[idxs[0]]?.ed?' · '+niceMonth(P[idxs[0]].ed):''}</div>
+      ${faces.length?`<div class="people" style="grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:16px 10px;padding:8px 0 22px">${faces.map((p,i)=>`<button class="person" style="--i:${i}" data-id="${p.id}"><span class="ph" style="width:70px;height:70px"><img src="${BLANK}" data-fi="${p.id}" alt=""></span><span class="ct" style="margin:0">${esc(nameOf(p))}</span></button>`).join('')}</div>`:''}
+      <div class="grid">${idxs.map(i => tile(i)).join('')}</div>
+    </section>`;
+  $('#bk').onclick = () => go('#events');
+  main.querySelectorAll('.person').forEach(b => b.onclick = () => openPerson(b));
+  wireTiles(main, idxs);
+  window.scrollTo(0,0);
+}
+
+/* ---------- all ---------- */
+let allShown = 120;
+function renderAll(){
+  setTab('all');
+  const idxs = P.map((_,i)=>i).filter(vis).sort((a,b)=>(P[b].d||'').localeCompare(P[a].d||''));
+  main.innerHTML = `<div class="evmeta" style="color:var(--mist);margin:22px 0 14px">Newest first. Photos without a camera date come last.</div><div class="grid" id="ag"></div><button class="more" id="mr">Show more photos</button>`;
+  const ag = $('#ag');
+  const draw = () => { ag.innerHTML = idxs.slice(0, allShown).map(i => tile(i)).join(''); wireTiles(ag, idxs); $('#mr').style.display = allShown>=idxs.length?'none':'block'; };
+  $('#mr').onclick = () => { allShown += 240; draw(); };
+  draw();
+}
+
+/* ---------- lightbox ---------- */
+let LB = {seq:[], k:0, pid:null};
+const lb = $('#lb');
+function openLB(seq, k, pid){ LB = {seq, k, pid}; lb.classList.add('on'); showLB(); $('#lbx').focus(); document.body.style.overflow='hidden'; }
+function closeLB(){ lb.classList.remove('on'); document.body.style.overflow=''; }
+function showLB(){
+  const i = LB.seq[LB.k], ph = P[i];
+  const img = $('#lbi');
+  img.style.animation='none'; img.offsetHeight; img.style.animation='';
+  img.src = BLANK; photoURL(i).then(u => { if(LB.seq[LB.k] === i) img.src = u; }).catch(() => {});
+  $('#lbw').querySelectorAll('.ring').forEach(r => r.remove());
+  const box = LB.pid!=null ? PEOPLE[LB.pid].box[i] : null;
+  if(box){ const r = document.createElement('span'); r.className='ring';
+    const pad=.25; Object.assign(r.style,{left:`${(box[0]-box[2]*pad/2)*100}%`,top:`${(box[1]-box[3]*pad/2)*100}%`,width:`${box[2]*(1+pad)*100}%`,height:`${box[3]*(1+pad)*100}%`}); $('#lbw').appendChild(r); }
+  $('#lbc').innerHTML = `<b>${esc(ph.e)}</b>${ph.d?' · '+niceDate(ph.d):''} · ${LB.k+1} of ${LB.seq.length}`;
+  const who = peopleIn[i] || [];
+  $('#lbpe').innerHTML = who.map(id => `<button data-id="${id}" title="${esc(nameOf(PEOPLE[id]))}"><img src="${BLANK}" data-fi="${id}" alt="${esc(nameOf(PEOPLE[id]))}"></button>`).join('');
+  $('#lbpe').querySelectorAll('button').forEach(b => b.onclick = () => { closeLB(); go('#person-'+b.dataset.id); });
+}
+const step = d => { LB.k = (LB.k + d + LB.seq.length) % LB.seq.length; showLB(); };
+$('#lbp').onclick = () => step(-1); $('#lbn').onclick = () => step(1); $('#lbx').onclick = closeLB;
+lb.onclick = e => { if(e.target===lb) closeLB(); };
+document.addEventListener('keydown', e => {
+  if(!lb.classList.contains('on')) return;
+  if(e.key==='Escape') closeLB(); else if(e.key==='ArrowLeft') step(-1); else if(e.key==='ArrowRight') step(1);
+});
+let tx=null; lb.addEventListener('touchstart', e => tx = e.touches[0].clientX, {passive:true});
+lb.addEventListener('touchend', e => { if(tx==null) return; const dx = e.changedTouches[0].clientX - tx; if(Math.abs(dx)>50) step(dx<0?1:-1); tx=null; });
+
+let EVENTS = [];
+$('#ownerlink').onclick = () => go('#owner');
+fetch('data.json').then(r => { if(!r.ok) throw new Error(r.status); return r.json(); }).then(data => {
+  D = data; P = D.photos; PEOPLE = D.people;
+  main.innerHTML = '<p class="empty">Loading the family photos…</p>';
+  return capsReady.catch(() => {}).then(() => {
+    if(hiddenFailed){ main.innerHTML = '<p class="empty">The list of hidden people didn’t load, so the photos are held back. Reload the page to try again.</p>'; return; }
+    applyHidden();
+    if(IS_OWNER) addPrivateTab();
+    route();
+  });
+}).catch(() => { main.innerHTML = '<p class="empty">The photo list did not load. Reload the page to try again.</p>'; });
+</script>
+
+</body>
+</html>
