@@ -131,7 +131,15 @@ section.ev .evmeta{color:var(--mist);font-size:15px;margin-bottom:14px}
 .lb.on{display:flex;animation:fade .25s ease}
 @keyframes fade{from{opacity:0}}
 .lb figure{margin:0;position:relative;max-width:92vw;max-height:84vh}
-.lb .imgwrap{position:relative;display:inline-block}
+.lb{overflow:hidden}
+.lb .imgwrap{position:relative;display:inline-block;transform-origin:0 0;touch-action:none;cursor:zoom-in;will-change:transform}
+.lb .imgwrap.zoomed{cursor:grab}
+.lb .imgwrap.dragging{cursor:grabbing}
+.lb .imgwrap.easing{transition:transform .25s ease}
+.zbar{display:flex;gap:8px;justify-content:center;margin-top:10px}
+.zbar button{background:rgba(13,58,64,.85);border:1px solid var(--peacock-line);color:var(--silk);border-radius:999px;min-width:40px;height:36px;padding:0 12px;cursor:pointer;font-size:17px}
+.zbar button:hover{border-color:var(--marigold)}
+.zbar .zl{font-size:14px;color:var(--mist);min-width:56px;display:grid;place-items:center;font-variant-numeric:tabular-nums}
 .lb img{display:block;max-width:92vw;max-height:80vh;border-radius:6px;animation:pop .35s cubic-bezier(.2,.9,.25,1.15)}
 @keyframes pop{from{transform:scale(.94);opacity:.3}}
 .lb .ring{position:absolute;border:3px solid var(--marigold);border-radius:50%;pointer-events:none;animation:ringin .6s .15s both cubic-bezier(.2,.9,.25,1.3)}
@@ -191,6 +199,7 @@ footer{color:#6f9a9a;font-size:14px;padding:30px 0 50px;border-top:1px solid var
   <figure>
     <div class="imgwrap" id="lbw"><img id="lbi" alt=""></div>
     <figcaption id="lbc"></figcaption>
+    <div class="zbar" aria-label="Zoom"><button id="zo" aria-label="Zoom out">−</button><span class="zl" id="zl">100%</span><button id="zi" aria-label="Zoom in">+</button><button id="zr">Fit</button></div>
     <div class="people-in" id="lbpe"></div>
   </figure>
   <button class="nav next" id="lbn" aria-label="Next photo">›</button>
@@ -572,12 +581,51 @@ document.addEventListener('keydown', e => { if(e.key === 'Escape' && vb.classLis
 let LB = {seq:[], k:0, pid:null};
 const lb = $('#lb');
 function openLB(seq, k, pid){ LB = {seq, k, pid}; lb.classList.add('on'); showLB(); $('#lbx').focus(); document.body.style.overflow='hidden'; }
-function closeLB(){ lb.classList.remove('on'); document.body.style.overflow=''; }
+function closeLB(){ lb.classList.remove('on'); document.body.style.overflow=''; resetZoom(false); }
+/* zoom: wheel, pinch, double-click, + and − buttons; drag to move around when zoomed */
+const lbw = $('#lbw'); let Z = {s:1, x:0, y:0};
+const ZMIN = 1, ZMAX = 6;
+function applyZoom(ease){
+  lbw.classList.toggle('easing', !!ease);
+  lbw.style.transform = Z.s === 1 && !Z.x && !Z.y ? '' : `translate(${Z.x}px,${Z.y}px) scale(${Z.s})`;
+  lbw.classList.toggle('zoomed', Z.s > 1);
+  $('#zl').textContent = Math.round(Z.s * 100) + '%';
+}
+function resetZoom(ease){ Z = {s:1, x:0, y:0}; applyZoom(ease); }
+function zoomAt(ns, cx, cy, ease){
+  ns = Math.min(ZMAX, Math.max(ZMIN, ns));
+  const r = lbw.getBoundingClientRect(), bx = r.left - Z.x, by = r.top - Z.y;
+  const px = (cx - bx - Z.x) / Z.s, py = (cy - by - Z.y) / Z.s;
+  if(ns === 1){ resetZoom(ease); return; }
+  Z = {s: ns, x: cx - bx - px * ns, y: cy - by - py * ns}; applyZoom(ease);
+}
+const centre = () => { const r = lbw.getBoundingClientRect(); return [r.left + r.width/2, r.top + r.height/2]; };
+$('#zi').onclick = e => { e.stopPropagation(); const [x,y] = centre(); zoomAt(Z.s * 1.6, x, y, true); };
+$('#zo').onclick = e => { e.stopPropagation(); const [x,y] = centre(); zoomAt(Z.s / 1.6, x, y, true); };
+$('#zr').onclick = e => { e.stopPropagation(); resetZoom(true); };
+lbw.addEventListener('wheel', e => { e.preventDefault(); zoomAt(Z.s * Math.exp(-e.deltaY * 0.0022), e.clientX, e.clientY, false); }, {passive:false});
+lbw.addEventListener('dblclick', e => { Z.s > 1 ? resetZoom(true) : zoomAt(2.5, e.clientX, e.clientY, true); });
+const ptrs = new Map(); let pinch = null, drag = null;
+lbw.addEventListener('pointerdown', e => {
+  lbw.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+  if(ptrs.size === 2){ const [a, b] = [...ptrs.values()]; pinch = {d: Math.hypot(a[0]-b[0], a[1]-b[1]), s: Z.s}; drag = null; }
+  else if(Z.s > 1){ drag = {x: e.clientX - Z.x, y: e.clientY - Z.y}; lbw.classList.add('dragging'); }
+});
+lbw.addEventListener('pointermove', e => {
+  if(!ptrs.has(e.pointerId)) return; ptrs.set(e.pointerId, [e.clientX, e.clientY]);
+  if(pinch && ptrs.size === 2){ const [a, b] = [...ptrs.values()]; zoomAt(pinch.s * Math.hypot(a[0]-b[0], a[1]-b[1]) / pinch.d, (a[0]+b[0])/2, (a[1]+b[1])/2, false); }
+  else if(drag){ Z.x = e.clientX - drag.x; Z.y = e.clientY - drag.y; applyZoom(false); }
+});
+const endPtr = e => { ptrs.delete(e.pointerId); if(ptrs.size < 2) pinch = null; if(!ptrs.size){ drag = null; lbw.classList.remove('dragging'); } };
+lbw.addEventListener('pointerup', endPtr); lbw.addEventListener('pointercancel', endPtr);
 function showLB(){
   const i = LB.seq[LB.k], ph = P[i];
   const img = $('#lbi');
   img.style.animation='none'; img.offsetHeight; img.style.animation='';
-  img.src = BLANK; photoURL(i).then(u => { if(LB.seq[LB.k] === i) img.src = u; }).catch(() => {});
+  resetZoom(false);
+  img.src = BLANK; photoURL(i).then(u => { if(LB.seq[LB.k] === i && !img.dataset.hd) img.src = u; }).catch(() => {});
+  delete img.dataset.hd;
+  const hd = new Image(); hd.onload = () => { if(LB.seq[LB.k] === i){ img.src = hd.src; img.dataset.hd = '1'; } }; hd.src = `hd/${i}.jpg`;
   $('#lbw').querySelectorAll('.ring').forEach(r => r.remove());
   const box = LB.pid!=null ? PEOPLE[LB.pid].box[i] : null;
   if(box){ const r = document.createElement('span'); r.className='ring';
@@ -593,9 +641,12 @@ lb.onclick = e => { if(e.target===lb) closeLB(); };
 document.addEventListener('keydown', e => {
   if(!lb.classList.contains('on')) return;
   if(e.key==='Escape') closeLB(); else if(e.key==='ArrowLeft') step(-1); else if(e.key==='ArrowRight') step(1);
+  else if(e.key==='+' || e.key==='='){ const [x,y] = centre(); zoomAt(Z.s * 1.6, x, y, true); }
+  else if(e.key==='-'){ const [x,y] = centre(); zoomAt(Z.s / 1.6, x, y, true); }
+  else if(e.key==='0') resetZoom(true);
 });
-let tx=null; lb.addEventListener('touchstart', e => tx = e.touches[0].clientX, {passive:true});
-lb.addEventListener('touchend', e => { if(tx==null) return; const dx = e.changedTouches[0].clientX - tx; if(Math.abs(dx)>50) step(dx<0?1:-1); tx=null; });
+let tx=null; lb.addEventListener('touchstart', e => { tx = (e.touches.length === 1 && Z.s === 1) ? e.touches[0].clientX : null; }, {passive:true});
+lb.addEventListener('touchend', e => { if(tx==null || Z.s !== 1) { tx = null; return; } const dx = e.changedTouches[0].clientX - tx; if(Math.abs(dx)>50) step(dx<0?1:-1); tx=null; });
 
 let EVENTS = [];
 $('#ownerlink').onclick = () => go('#owner');
