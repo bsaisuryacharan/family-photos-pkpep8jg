@@ -432,7 +432,7 @@ function renderPerson(id){
       <div>
         <input class="namebox" id="nm" value="${esc(nameOf(p))}" aria-label="Name for this person">
         <div class="sub">${p.photos.length} photos across ${groups.length} events</div>
-        <div class="hint" id="hint" aria-live="polite">Type a name and press Enter to save it for everyone.</div>
+        <div class="hint" id="hint" aria-live="polite">Type a name and press Enter to save it.</div>
       </div>
     </div>
     ${groups.map(([ev, idxs]) => `
