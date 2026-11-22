@@ -217,7 +217,7 @@ footer{color:#6f9a9a;font-size:14px;padding:30px 0 50px;border-top:1px solid var
   <figure>
     <div class="imgwrap" id="lbw"><img id="lbi" alt=""></div>
     <figcaption id="lbc"></figcaption>
-    <div class="zbar" aria-label="Zoom"><button id="zo" aria-label="Zoom out">−</button><span class="zl" id="zl">100%</span><button id="zi" aria-label="Zoom in">+</button><button id="zr">Fit</button><span class="sep"></span><button class="zt" id="zid" aria-pressed="false" title="Show who is in this photo"><svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/><path d="M2 7V3h4M22 7V3h-4"/></svg><span class="lbl">Identify faces</span></button><button class="zt" id="zss" aria-pressed="false" title="Play a slideshow"><svg viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></svg><span class="lbl">Slideshow</span></button><a class="zbtn" id="zdl" download title="Download this photo"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span class="lbl">Download</span></a></div>
+    <div class="zbar" aria-label="Zoom"><button id="zo" aria-label="Zoom out">−</button><span class="zl" id="zl">100%</span><button id="zi" aria-label="Zoom in">+</button><button id="zr">Fit</button><span class="sep"></span><button class="zt" id="zid" aria-pressed="false" aria-label="Circle this person in the photo" title="Circle this person"><svg viewBox="0 0 24 24" style="margin-right:0"><circle cx="12" cy="10" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/><path d="M2 7V3h4M22 7V3h-4"/></svg></button><button class="zt" id="zss" aria-pressed="false" title="Play a slideshow"><svg viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></svg><span class="lbl">Slideshow</span></button><a class="zbtn" id="zdl" download title="Download this photo"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span class="lbl">Download</span></a></div>
     <div class="people-in" id="lbpe"></div>
   </figure>
   <button class="nav next" id="lbn" aria-label="Next photo">›</button>
@@ -697,8 +697,9 @@ let IDENT = false, SHOW = null;
 function drawRings(i){
   const w = $('#lbw'); w.querySelectorAll('.ring,.rtag').forEach(r => r.remove());
   $('#zid').classList.toggle('on', IDENT); $('#zid').setAttribute('aria-pressed', IDENT);
-  if(!IDENT) return;
-  const ids = [...new Set([...(peopleIn[i] || []), ...(LB.pid != null && !PEOPLE[LB.pid].hidden ? [LB.pid] : [])])];
+  $('#zid').hidden = LB.pid == null;
+  if(!IDENT || LB.pid == null) return;
+  const ids = [LB.pid];
   ids.forEach(id => {
     const box = PEOPLE[id].box[i]; if(!box) return;
     const other = LB.pid != null && id !== LB.pid ? ' other' : '';
@@ -708,7 +709,6 @@ function drawRings(i){
     Object.assign(t.style, {left:`${(box[0]+box[2]/2)*100}%`, top:`${(box[1]+box[3]*(1+pad/2))*100}%`});
     w.appendChild(r); w.appendChild(t);
   });
-  if(!ids.length){ const t = document.createElement('span'); t.className = 'rtag other'; t.textContent = 'No faces found in this photo'; Object.assign(t.style, {left:'50%', top:'2%'}); w.appendChild(t); }
 }
 function setSlideshow(on){
   clearInterval(SHOW); SHOW = on ? setInterval(() => step(1), 3500) : null;
