@@ -136,7 +136,9 @@ section.ev .evmeta{color:var(--mist);font-size:15px;margin-bottom:14px}
 .lb .imgwrap.zoomed{cursor:grab}
 .lb .imgwrap.dragging{cursor:grabbing}
 .lb .imgwrap.easing{transition:transform .25s ease}
-.zbar{display:flex;gap:8px;justify-content:center;margin-top:10px}
+.zbar{display:flex;gap:8px;justify-content:center;position:fixed;z-index:5;top:calc(16px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%)}
+.lb .x,.lb .nav{z-index:5}
+.lb figcaption,.lb .people-in{position:relative;z-index:4}
 .zbar button{background:rgba(13,58,64,.85);border:1px solid var(--peacock-line);color:var(--silk);border-radius:999px;min-width:40px;height:36px;padding:0 12px;cursor:pointer;font-size:17px}
 .zbar button:hover{border-color:var(--marigold)}
 .zbar .zl{font-size:14px;color:var(--mist);min-width:56px;display:grid;place-items:center;font-variant-numeric:tabular-nums}
