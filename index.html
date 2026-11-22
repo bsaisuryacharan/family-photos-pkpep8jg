@@ -108,8 +108,22 @@ section.ev .evmeta{color:var(--mist);font-size:15px;margin-bottom:14px}
 .tile{break-inside:avoid;margin:0 0 12px;position:relative;display:block;width:100%;border:0;padding:0;background:var(--peacock-deep);border-radius:10px;overflow:hidden;cursor:zoom-in}
 .tile img{display:block;width:100%;height:auto;transition:transform .5s ease,filter .3s}
 .tile:hover img{transform:scale(1.04)}
-.tile .fx{position:absolute;border:2px solid var(--marigold);border-radius:50%;box-shadow:0 0 0 999px rgba(8,42,47,.0);opacity:0;transition:opacity .25s}
-.tile:hover .fx{opacity:1}
+.tile{background:linear-gradient(100deg,var(--peacock-deep) 30%,#123f45 50%,var(--peacock-deep) 70%);background-size:300% 100%;animation:shimmer 1.6s linear infinite}
+.tile img{opacity:1;transition:opacity .35s ease,transform .5s ease}
+.tile img[src^="data:"]{opacity:0}
+@keyframes shimmer{from{background-position:100% 0}to{background-position:-200% 0}}
+.zbar .sep{width:1px;background:var(--peacock-line);margin:4px 2px}
+.zbar button.on{background:var(--marigold);color:#2a1a00;border-color:var(--marigold)}
+.zbar svg{width:16px;height:16px;vertical-align:-3px;margin-right:6px;fill:none;stroke:currentColor;stroke-width:2}
+.zbar a.zbtn{background:rgba(13,58,64,.85);border:1px solid var(--peacock-line);color:var(--silk);border-radius:999px;height:36px;padding:0 12px;display:inline-flex;align-items:center;text-decoration:none;font-size:15px}
+.zbar a.zbtn:hover{border-color:var(--marigold)}
+.zbar button.zt{font-size:15px}
+.lb .rtag{position:absolute;transform:translate(-50%,6px);background:var(--marigold);color:#2a1a00;font-size:13px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap;pointer-events:none;animation:ringin .5s .2s both}
+.lb .ring.other{border-color:var(--silk);border-width:2px}
+.lb .rtag.other{background:var(--silk)}
+#totop{position:fixed;right:calc(18px + env(safe-area-inset-right,0px));bottom:calc(18px + env(safe-area-inset-bottom,0px));width:46px;height:46px;border-radius:50%;background:var(--marigold);color:#2a1a00;border:0;font-size:20px;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.35);opacity:0;transform:translateY(20px);pointer-events:none;transition:opacity .25s,transform .25s;z-index:20}
+#totop.show{opacity:1;transform:none;pointer-events:auto}
+@media (max-width:600px){.zbar .lbl{display:none}.zbar svg{margin-right:0}.zbar{gap:5px}.zbar button,.zbar a.zbtn{padding:0 10px;min-width:36px}}
 .tile.miss{aspect-ratio:4/3;display:grid;place-items:center;color:var(--mist);font-size:14px}
 .more{display:block;margin:20px auto 80px;background:none;border:1px solid var(--marigold);color:var(--marigold);border-radius:999px;padding:10px 24px;cursor:pointer}
 
@@ -190,6 +204,7 @@ footer{color:#6f9a9a;font-size:14px;padding:30px 0 50px;border-top:1px solid var
   <footer>Photos and videos here are smaller copies; the full-size originals are in the Family Photos folder on Google Drive. Click a name under any face to type a new one. <button class="ren" id="ownerlink">Sign in</button></footer>
 </div>
 
+<button id="totop" aria-label="Back to top">↑</button>
 <div class="vb" id="vb" role="dialog" aria-modal="true" aria-label="Video player">
   <button class="x" id="vbx">Close</button>
   <video id="vbv" controls playsinline preload="metadata"></video>
@@ -201,7 +216,7 @@ footer{color:#6f9a9a;font-size:14px;padding:30px 0 50px;border-top:1px solid var
   <figure>
     <div class="imgwrap" id="lbw"><img id="lbi" alt=""></div>
     <figcaption id="lbc"></figcaption>
-    <div class="zbar" aria-label="Zoom"><button id="zo" aria-label="Zoom out">−</button><span class="zl" id="zl">100%</span><button id="zi" aria-label="Zoom in">+</button><button id="zr">Fit</button></div>
+    <div class="zbar" aria-label="Zoom"><button id="zo" aria-label="Zoom out">−</button><span class="zl" id="zl">100%</span><button id="zi" aria-label="Zoom in">+</button><button id="zr">Fit</button><span class="sep"></span><button class="zt" id="zid" aria-pressed="false" title="Show who is in this photo"><svg viewBox="0 0 24 24"><circle cx="12" cy="10" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/><path d="M2 7V3h4M22 7V3h-4"/></svg><span class="lbl">Identify faces</span></button><button class="zt" id="zss" aria-pressed="false" title="Play a slideshow"><svg viewBox="0 0 24 24"><path d="M7 5l12 7-12 7z"/></svg><span class="lbl">Slideshow</span></button><a class="zbtn" id="zdl" download title="Download this photo"><svg viewBox="0 0 24 24"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg><span class="lbl">Download</span></a></div>
     <div class="people-in" id="lbpe"></div>
   </figure>
   <button class="nav next" id="lbn" aria-label="Next photo">›</button>
@@ -480,9 +495,8 @@ function openPerson(btn){
 /* ---------- photo grid helpers ---------- */
 function tile(i, personId){
   const ph = P[i]; const box = personId!=null ? PEOPLE[personId].box[i] : null;
-  const fx = box ? `<span class="fx" style="left:${box[0]*100-1}%;top:${box[1]*100-1}%;width:${box[2]*100+2}%;height:${box[3]*100+2}%"></span>` : '';
   const ar = ph.w && ph.h ? `aspect-ratio:${ph.w}/${ph.h}` : '';
-  return `<button class="tile" data-i="${i}" style="${ar}" aria-label="Open photo${ph.d?' from '+niceDate(ph.d):''}"><img src="${BLANK}" data-pi="${i}" alt="">${fx}</button>`;
+  return `<button class="tile" data-i="${i}" style="${ar}" aria-label="Open photo${ph.d?' from '+niceDate(ph.d):''}"><img src="${BLANK}" data-pi="${i}" alt=""></button>`;
 }
 function groupByEvent(idxs){
   const g = new Map();
@@ -625,8 +639,8 @@ document.addEventListener('keydown', e => { if(e.key === 'Escape' && vb.classLis
 /* ---------- lightbox ---------- */
 let LB = {seq:[], k:0, pid:null};
 const lb = $('#lb');
-function openLB(seq, k, pid){ LB = {seq, k, pid}; lb.classList.add('on'); showLB(); $('#lbx').focus(); document.body.style.overflow='hidden'; }
-function closeLB(){ lb.classList.remove('on'); document.body.style.overflow=''; resetZoom(false); }
+function openLB(seq, k, pid){ LB = {seq, k, pid}; IDENT = false; lb.classList.add('on'); showLB(); $('#lbx').focus(); document.body.style.overflow='hidden'; }
+function closeLB(){ lb.classList.remove('on'); document.body.style.overflow=''; resetZoom(false); setSlideshow(false); }
 /* zoom: wheel, pinch, double-click, + and − buttons; drag to move around when zoomed */
 const lbw = $('#lbw'); let Z = {s:1, x:0, y:0};
 const ZMIN = 1, ZMAX = 6;
@@ -671,15 +685,38 @@ function showLB(){
   img.src = BLANK; photoURL(i).then(u => { if(LB.seq[LB.k] === i && !img.dataset.hd) img.src = u; }).catch(() => {});
   delete img.dataset.hd;
   const hd = new Image(); hd.onload = () => { if(LB.seq[LB.k] === i){ img.src = hd.src; img.dataset.hd = '1'; } }; hd.src = `hd/${i}.jpg`;
-  $('#lbw').querySelectorAll('.ring').forEach(r => r.remove());
-  const box = LB.pid!=null ? PEOPLE[LB.pid].box[i] : null;
-  if(box){ const r = document.createElement('span'); r.className='ring';
-    const pad=.25; Object.assign(r.style,{left:`${(box[0]-box[2]*pad/2)*100}%`,top:`${(box[1]-box[3]*pad/2)*100}%`,width:`${box[2]*(1+pad)*100}%`,height:`${box[3]*(1+pad)*100}%`}); $('#lbw').appendChild(r); }
+  drawRings(i);
+  const dl = $('#zdl'); dl.href = `hd/${i}.jpg`; dl.setAttribute('download', `${(ph.e || 'photo').replace(/[^\w -]+/g, '')} ${ph.d ? ph.d.slice(0,10) : i}.jpg`);
   $('#lbc').innerHTML = `<b>${esc(ph.e)}</b>${ph.d?' · '+niceDate(ph.d):''} · ${LB.k+1} of ${LB.seq.length}`;
   const who = peopleIn[i] || [];
   $('#lbpe').innerHTML = who.map(id => `<button data-id="${id}" title="${esc(nameOf(PEOPLE[id]))}"><img src="${BLANK}" data-fi="${id}" alt="${esc(nameOf(PEOPLE[id]))}"></button>`).join('');
   $('#lbpe').querySelectorAll('button').forEach(b => b.onclick = () => { closeLB(); go('#person-'+b.dataset.id); });
 }
+let IDENT = false, SHOW = null;
+function drawRings(i){
+  const w = $('#lbw'); w.querySelectorAll('.ring,.rtag').forEach(r => r.remove());
+  $('#zid').classList.toggle('on', IDENT); $('#zid').setAttribute('aria-pressed', IDENT);
+  if(!IDENT) return;
+  const ids = [...new Set([...(peopleIn[i] || []), ...(LB.pid != null && !PEOPLE[LB.pid].hidden ? [LB.pid] : [])])];
+  ids.forEach(id => {
+    const box = PEOPLE[id].box[i]; if(!box) return;
+    const other = LB.pid != null && id !== LB.pid ? ' other' : '';
+    const r = document.createElement('span'); r.className = 'ring' + other; const pad = .25;
+    Object.assign(r.style, {left:`${(box[0]-box[2]*pad/2)*100}%`, top:`${(box[1]-box[3]*pad/2)*100}%`, width:`${box[2]*(1+pad)*100}%`, height:`${box[3]*(1+pad)*100}%`});
+    const t = document.createElement('span'); t.className = 'rtag' + other; t.textContent = nameOf(PEOPLE[id]);
+    Object.assign(t.style, {left:`${(box[0]+box[2]/2)*100}%`, top:`${(box[1]+box[3]*(1+pad/2))*100}%`});
+    w.appendChild(r); w.appendChild(t);
+  });
+  if(!ids.length){ const t = document.createElement('span'); t.className = 'rtag other'; t.textContent = 'No faces found in this photo'; Object.assign(t.style, {left:'50%', top:'2%'}); w.appendChild(t); }
+}
+function setSlideshow(on){
+  clearInterval(SHOW); SHOW = on ? setInterval(() => step(1), 3500) : null;
+  $('#zss').classList.toggle('on', on); $('#zss').setAttribute('aria-pressed', on);
+  $('#zss .lbl').textContent = on ? 'Pause' : 'Slideshow';
+}
+$('#zid').onclick = e => { e.stopPropagation(); IDENT = !IDENT; drawRings(LB.seq[LB.k]); };
+$('#zss').onclick = e => { e.stopPropagation(); setSlideshow(!SHOW); };
+$('#zdl').onclick = e => e.stopPropagation();
 const step = d => { LB.k = (LB.k + d + LB.seq.length) % LB.seq.length; showLB(); };
 $('#lbp').onclick = () => step(-1); $('#lbn').onclick = () => step(1); $('#lbx').onclick = closeLB;
 lb.onclick = e => { if(e.target===lb) closeLB(); };
@@ -689,11 +726,15 @@ document.addEventListener('keydown', e => {
   else if(e.key==='+' || e.key==='='){ const [x,y] = centre(); zoomAt(Z.s * 1.6, x, y, true); }
   else if(e.key==='-'){ const [x,y] = centre(); zoomAt(Z.s / 1.6, x, y, true); }
   else if(e.key==='0') resetZoom(true);
+  else if(e.key==='i' || e.key==='I') $('#zid').click();
+  else if(e.key===' '){ e.preventDefault(); $('#zss').click(); }
 });
 let tx=null; lb.addEventListener('touchstart', e => { tx = (e.touches.length === 1 && Z.s === 1) ? e.touches[0].clientX : null; }, {passive:true});
 lb.addEventListener('touchend', e => { if(tx==null || Z.s !== 1) { tx = null; return; } const dx = e.changedTouches[0].clientX - tx; if(Math.abs(dx)>50) step(dx<0?1:-1); tx=null; });
 
 let EVENTS = [];
+addEventListener('scroll', () => $('#totop').classList.toggle('show', scrollY > 900), {passive:true});
+$('#totop').onclick = () => scrollTo({top:0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
 $('#ownerlink').onclick = () => go('#owner');
 fetch('data.json').then(r => { if(!r.ok) throw new Error(r.status); return r.json(); }).then(data => {
   D = data; P = D.photos; PEOPLE = D.people;
