@@ -67,6 +67,12 @@ label.toggle input{accent-color:var(--marigold);width:18px;height:18px}
 .vt table{border-collapse:collapse;min-width:520px;width:100%;font-size:15px;font-variant-numeric:tabular-nums}
 .vt th{text-align:left;color:var(--mist);font-weight:500;padding:8px 12px;border-bottom:1px solid var(--peacock-line)}
 .vt td{padding:10px 12px;border-bottom:1px solid var(--peacock-line)}
+.nmi{width:100%;max-width:150px;background:transparent;border:1px solid transparent;border-radius:8px;color:var(--silk);font:600 15px/1.2 Hind,system-ui,sans-serif;padding:4px 6px;text-align:center;transition:border-color .2s,background .2s}
+.nmi::placeholder{color:var(--silk);opacity:1}
+.nmi:hover{border-color:var(--peacock-line)}
+.nmi:focus{outline:none;border-color:var(--marigold);background:var(--peacock-deep)}
+.nmi:focus::placeholder{color:#6f9a9a}
+.pcard .ct{margin-top:-4px}
 @property --a{syntax:"<angle>";inherits:false;initial-value:0deg}
 @keyframes spin{to{--a:360deg}}
 @keyframes bloom{to{opacity:1;transform:none}}
@@ -156,7 +162,7 @@ footer{color:#6f9a9a;font-size:14px;padding:30px 0 50px;border-top:1px solid var
     </nav>
   </header>
   <main id="main"></main>
-  <footer>Photos here are small previews; the full-size originals are in the Family Photos folder on Google Drive. Use Rename under a face, or click the name on a person's page, to name someone. <button class="ren" id="ownerlink">Owner sign-in</button></footer>
+  <footer>Photos here are small previews; the full-size originals are in the Family Photos folder on Google Drive. Click a name under any face to type a new one. <button class="ren" id="ownerlink">Owner sign-in</button></footer>
 </div>
 
 <div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="Photo viewer">
@@ -282,6 +288,7 @@ async function toggleHidden(id){
 }
 function refreshNames(){
   document.querySelectorAll('.person[data-id]').forEach(b => { const p = PEOPLE[+b.dataset.id]; const n = b.querySelector('.nm, .ct'); if(n && n.classList.contains('nm')) n.textContent = nameOf(p); else if(n && !b.querySelector('.nm')) n.textContent = nameOf(p); b.setAttribute('aria-label', nameOf(p)); });
+  document.querySelectorAll('.nmi').forEach(i => { if(document.activeElement !== i) i.value = names[i.dataset.id] || localNames[i.dataset.id] || ''; });
   const nm = $('#nm'); if(nm){ const id = +location.hash.split('-')[1]; if(PEOPLE[id]) nm.value = nameOf(PEOPLE[id]); }
 }
 let nameBusy = Promise.resolve();
@@ -363,38 +370,29 @@ function drawPeople(){
     <div class="pcard">
       <button class="person ${p.photos.length>=80?'big':''}" style="--i:${Math.min(i,60)}" data-id="${p.id}" aria-label="${esc(nameOf(p))}, ${p.photos.length} photos">
         <span class="ph"><img src="${BLANK}" data-fi="${p.id}" alt=""></span>
-        <span class="nm">${esc(nameOf(p))}</span>
-        <span class="ct">${p.photos.length} photos</span>
       </button>
-      <button class="ren" data-id="${p.id}" aria-label="Rename ${esc(nameOf(p))}">Rename</button>
+      <input class="nmi" id="nmi-${p.id}" data-id="${p.id}" value="${esc(names[p.id] || localNames[p.id] || '')}" placeholder="Person ${p.id+1}" maxlength="60" aria-label="Name for person ${p.id+1}">
+      <span class="ct">${p.photos.length} photos</span>
     </div>`).join('');
   pp.querySelectorAll('.person').forEach(b => b.onclick = () => openPerson(b));
-  pp.querySelectorAll('.ren').forEach(b => b.onclick = () => startRename(b));
+  pp.querySelectorAll('.nmi').forEach(wireNameInput);
 }
-function startRename(btn){
-  const id = +btn.dataset.id, p = PEOPLE[id], card = btn.closest('.pcard');
-  const nmEl = card.querySelector('.nm'), ctEl = card.querySelector('.ct');
-  const inp = document.createElement('input');
-  inp.className = 'ren-in'; inp.id = 'ren-' + id; inp.value = names[id] || ''; inp.placeholder = nameOf(p); inp.maxLength = 60;
-  inp.setAttribute('aria-label', 'Name for ' + nameOf(p));
-  btn.hidden = true; card.appendChild(inp); inp.focus();
-  let finished = false;
-  const finish = async keep => {
-    if(finished) return; finished = true;
+function wireNameInput(inp){
+  const id = +inp.dataset.id, p = PEOPLE[id], card = inp.closest('.pcard'), ctEl = card.querySelector('.ct');
+  const current = () => names[id] || localNames[id] || '';
+  let busy = false;
+  const commit = async () => {
     const v = inp.value.trim().slice(0, 60);
-    inp.remove(); btn.hidden = false;
-    if(!keep || v === (names[id] || '')) return;
-    ctEl.textContent = 'Saving…';
+    if(busy || v === current()) { inp.value = current(); return; }
+    busy = true; ctEl.textContent = 'Saving…';
     const msg = await saveName(id, v);
-    nmEl.textContent = nameOf(p);
-    btn.setAttribute('aria-label', 'Rename ' + nameOf(p));
+    busy = false; inp.value = current();
     card.querySelector('.person').setAttribute('aria-label', `${nameOf(p)}, ${p.photos.length} photos`);
-    ctEl.textContent = msg.startsWith('Saved') ? 'Saved' : 'Not saved';
-    ctEl.title = msg;
+    ctEl.textContent = msg.startsWith('Saved') ? 'Saved' : 'Not saved'; ctEl.title = msg;
     setTimeout(() => { ctEl.textContent = `${p.photos.length} photos`; ctEl.title = ''; }, 2500);
   };
-  inp.onkeydown = e => { if(e.key === 'Enter') finish(true); else if(e.key === 'Escape') finish(false); };
-  inp.onblur = () => finish(true);
+  inp.onkeydown = e => { if(e.key === 'Enter') inp.blur(); else if(e.key === 'Escape'){ inp.value = current(); inp.blur(); } };
+  inp.onblur = commit;
 }
 function openPerson(btn){
   const id = +btn.dataset.id, img = btn.querySelector('img');
