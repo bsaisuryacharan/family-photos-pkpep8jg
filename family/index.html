@@ -390,7 +390,8 @@ const peopleIn = {}; // photo index -> [person ids]
 
 const BLANK = 'data:image/gif;base64,R0lGODlhAQABAAAAACw=';
 const bundles = {}, urlCache = {};
-const bundle = name => bundles[name] ||= fetch(A + name + '?v=2').then(r => { if(!r.ok) throw new Error(r.status); return r.arrayBuffer(); });
+const bundle = name => bundles[name] ||= fetch(A + name + '?v=3').then(r => { if(!r.ok) throw new Error(r.status); return r.arrayBuffer(); });
+bundle('faces.jpg').catch(() => {});   // start loading the faces straight away
 const sliceURL = (buf, off, len) => URL.createObjectURL(new Blob([buf.slice(off, off+len)], {type:'image/jpeg'}));
 function photoURL(i){ const b = P[i].b; if(!b) return Promise.reject(new Error('missing')); return urlCache['p'+i] ||= bundle(`photos-${b[0]}.jpg`).then(buf => sliceURL(buf, b[1], b[2])); }
 function faceURL(id){ const f = PEOPLE[id].fb; return urlCache['f'+id] ||= bundle('faces.jpg').then(buf => sliceURL(buf, f[0], f[1])); }
@@ -725,7 +726,7 @@ addEventListener('scroll', () => $('#totop').classList.toggle('show', scrollY > 
 $('#totop').onclick = () => scrollTo({top:0, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
 $('#ownerlink').onclick = () => go('#owner');
 if(window.MODE === 'me'){ document.title = 'All Photos'; $('#ttl').firstChild.textContent = 'All Photos'; }
-fetch(A + 'data.json?v=2').then(r => { if(!r.ok) throw new Error(r.status); return r.json(); }).then(data => {
+fetch(A + 'data.json?v=3').then(r => { if(!r.ok) throw new Error(r.status); return r.json(); }).then(data => {
   D = data; P = D.photos; PEOPLE = D.people;
   main.innerHTML = '<p class="empty">Loading the family photos…</p>';
   return Promise.race([Promise.all([capsReady.catch(() => {}), videosReady]), new Promise(r => setTimeout(r, 12000))]).then(() => {
